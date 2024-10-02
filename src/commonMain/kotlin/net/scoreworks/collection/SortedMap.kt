@@ -86,6 +86,26 @@ interface SortedMap<K: Comparable<K>, V> : MutableMap<K, V> {
     fun floorEntry(key: K): Map.Entry<K, V>?
 
     /**
+     * Returns the first key in the map or `null` if map is empty.
+     */
+    fun firstKey(): K?
+
+    /**
+     * Returns the first entry in the map or `null` if map is empty.
+     */
+    fun firstEntry(): Map.Entry<K, V>?
+
+    /**
+     * Returns the last key in the map or `null` if map is empty.
+     */
+    fun lastKey(): K?
+
+    /**
+     * Returns the last entry in the map or `null` if map is empty.
+     */
+    fun lastEntry(): Map.Entry<K, V>?
+
+    /**
      * Creates an iterator of values between `start` and `end`.
      *
      * Both `start` and `end` default to `null`, which includes all entries

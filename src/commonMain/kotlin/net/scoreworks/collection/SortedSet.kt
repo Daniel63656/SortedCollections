@@ -11,47 +11,57 @@ interface SortedSet<E: Comparable<E>> : MutableSet<E> {
     fun get(index: Int): E
 
     /**
-     * Returns the index of the specified key in the set.
+     * Returns the index of the specified element in the set.
      *
-     * This function searches for the given key in the set and returns its position
-     * in the sorted order. If the key is not found, it returns -1.
+     * This function searches for the given element in the set and returns its position
+     * in the sorted order. If the element is not found, it returns -1.
      *
-     * @param element The key to search for.
-     * @return The index of the key if it exists, or -1 if the key is not present in the set.
+     * @param element The element to search for.
+     * @return The index of the element if it exists, or -1 if the element is not present in the set.
      */
     fun indexOf(element: E): Int
 
     /**
-     * Returns the least key strictly greater than the specified key.
+     * Returns the least element strictly greater than the specified element.
      *
-     * @param key the key to compare against
-     * @return the higher key, or `null` if there is no such key
+     * @param element the element to compare against
+     * @return the higher element, or `null` if there is no such element
      */
     fun higher(element: E): E?
 
     /**
-     * Returns the greatest key strictly less than the specified key.
+     * Returns the greatest element strictly less than the specified element.
      *
-     * @param key the key to compare against
-     * @return the lower key, or `null` if there is no such key
+     * @param element the element to compare against
+     * @return the lower element, or `null` if there is no such element
      */
     fun lower(element: E): E?
 
     /**
-     * Returns the least key greater than or equal to the specified key.
+     * Returns the least element greater than or equal to the specified element.
      *
-     * @param key the key to compare against
-     * @return the ceiling key, or `null` if there is no such key
+     * @param element the element to compare against
+     * @return the ceiling element, or `null` if there is no such element
      */
     fun ceiling(element: E): E?
 
     /**
-     * Returns the greatest key less than or equal to the specified key.
+     * Returns the greatest element less than or equal to the specified element.
      *
-     * @param key the key to compare against
-     * @return the floor key, or `null` if there is no such key
+     * @param element the element to compare against
+     * @return the floor element, or `null` if there is no such element
      */
     fun floor(element: E): E?
+
+    /**
+     * Returns the first element in the set or `null` if set is empty.
+     */
+    fun first(): E?
+
+    /**
+     * Returns the last element in the set or `null` if set is empty.
+     */
+    fun last(): E?
 
     fun rangedQuery(
         start: E? = null,

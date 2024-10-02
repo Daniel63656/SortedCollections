@@ -191,6 +191,15 @@ class TreeSet<E : Comparable<E>> : SortedSet<E> {
         return lowerNode(element)?.key
     }
 
+    override fun first(): E? {
+        return root?.let { minimumNode(it).key }
+    }
+
+    override fun last(): E? {
+        return root?.let { maximumNode(it).key }
+    }
+
+
     override fun rangedQuery(start: E?, end: E?, inclusive: Pair<Boolean, Boolean>, reverse: Boolean): Iterator<E> {
         if (root == null) {
             // Is empty; return an empty iterator

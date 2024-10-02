@@ -190,6 +190,22 @@ class TreeMap<K : Comparable<K>, V> : SortedMap<K, V> {
         return lowerNode(key)
     }
 
+    override fun firstKey(): K? {
+        return root?.let { minimumNode(it).key }
+    }
+
+    override fun firstEntry(): Map.Entry<K, V>? {
+        return root?.let { maximumNode(it) }
+    }
+
+    override fun lastKey(): K? {
+        return root?.let { maximumNode(it).key }
+    }
+
+    override fun lastEntry(): Map.Entry<K, V>? {
+        return root?.let { maximumNode(it) }
+    }
+
     override fun rangedQuery(start: K?, end: K?, inclusive: Pair<Boolean, Boolean>, reverse: Boolean): Iterator<Map.Entry<K, V>> {
         if (root == null) {
             // Is empty; return an empty iterator
