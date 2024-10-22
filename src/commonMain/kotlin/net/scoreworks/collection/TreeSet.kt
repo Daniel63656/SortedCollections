@@ -1,7 +1,7 @@
 package net.scoreworks.collection
 
 
-class TreeSet<E : Comparable<E>> : SortedSet<E> {
+open class TreeSet<E : Comparable<E>> : MutableSortedSet<E> {
     private var root: Node<E>? = null
     private var _size: Int = 0  // Internal size variable
     private var modCount = 0    // For concurrency
@@ -225,21 +225,14 @@ class TreeSet<E : Comparable<E>> : SortedSet<E> {
                 private var expectedModCount: Int = modCount    // detect concurrent modifications
 
                 override fun hasNext(): Boolean {
-                    return nextNode != null
+                    return nextNode != null && ((inclusive.second && nextNode!!.key <= stop) || (!inclusive.second && nextNode!!.key < stop))
                 }
 
                 override fun next(): E {
-                    if (nextNode == null) throw NoSuchElementException("Iteration exceeded.")
+                    val currentNode = nextNode ?: throw NoSuchElementException("Iteration exceeded.")
                     if (expectedModCount != modCount) throw ConcurrentModificationException("The set was modified while iterating.")
-                    val datum: E = nextNode!!.key
-                    if (inclusive.second) {
-                        if (datum > stop) throw NoSuchElementException("Iteration exceeded.")
-                    }
-                    else {
-                        if (datum >= stop) throw NoSuchElementException("Iteration exceeded.")
-                    }
                     nextNode = successor(nextNode!!)
-                    return datum
+                    return currentNode.key
                 }
             }
         }
@@ -264,20 +257,14 @@ class TreeSet<E : Comparable<E>> : SortedSet<E> {
                 private var expectedModCount: Int = modCount // detect concurrent modifications
 
                 override fun hasNext(): Boolean {
-                    return nextNode != null
+                    return nextNode != null && ((inclusive.first && nextNode!!.key >= stop) || (!inclusive.first && nextNode!!.key > stop))
                 }
 
                 override fun next(): E {
-                    if (nextNode == null) throw NoSuchElementException("Iteration exceeded.")
+                    val currentNode = nextNode ?: throw NoSuchElementException("Iteration exceeded.")
                     if (expectedModCount != modCount) throw ConcurrentModificationException("The set was modified while iterating.")
-                    val datum: E = nextNode!!.key
-                    if (inclusive.first) {
-                        if (datum < stop) throw NoSuchElementException("Iteration exceeded.")
-                    } else {
-                        if (datum <= stop) throw NoSuchElementException("Iteration exceeded.")
-                    }
-                    nextNode = predecessor(nextNode!!) // Use predecessor for reverse traversal
-                    return datum
+                    nextNode = predecessor(currentNode)
+                    return currentNode.key
                 }
             }
         }
@@ -297,14 +284,11 @@ class TreeSet<E : Comparable<E>> : SortedSet<E> {
         }
 
         override fun next(): E {
-            if (nextNode == null) {
-                throw NoSuchElementException("Iteration exceeded.")
-            }
+            val currentNode = nextNode ?: throw NoSuchElementException("Iteration exceeded.")
             if (expectedModCount != modCount) throw ConcurrentModificationException("The set was modified while iterating.")
-            val datum: E = nextNode!!.key
             previousNode = nextNode
-            nextNode = successor(nextNode!!)
-            return datum
+            nextNode = successor(currentNode)
+            return currentNode.key
         }
 
         override fun remove() {

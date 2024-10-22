@@ -1,6 +1,7 @@
 package net.scoreworks.collection
 
-interface SortedSet<E: Comparable<E>> : MutableSet<E> {
+
+interface SortedSet<E: Comparable<E>> : Set<E> {
 
     /**
      * Retrieves the value at the specified index in the sorted set.

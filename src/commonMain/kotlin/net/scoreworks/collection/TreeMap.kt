@@ -1,20 +1,25 @@
 package net.scoreworks.collection
 
 
-class TreeMap<K : Comparable<K>, V> : SortedMap<K, V> {
+open class TreeMap<K : Comparable<K>, V> : MutableSortedMap<K, V> {
     private var root: Node<K, V>? = null
     private var _size: Int = 0  // Internal size variable
     private var modCount = 0    // For concurrency
-    override val size: Int
-        get() = _size
 
-    private class Node<K, V>(override var key: K, override var value: V): Map.Entry<K, V> {
+    private class Node<K, V>(override var key: K, override var value: V): MutableMap.MutableEntry<K, V> {
         var parent: Node<K, V>? = null
         var left: Node<K, V>? = null
         var right: Node<K, V>? = null
         var height = 0
         var count = 0
+        override fun setValue(newValue: V): V {
+            val old = value
+            value = newValue
+            return old
+        }
     }
+
+    override val size: Int get() = _size
 
     override fun clear() {
         modCount += _size
@@ -51,8 +56,10 @@ class TreeMap<K : Comparable<K>, V> : SortedMap<K, V> {
         while (node != null) {
             cmp = key.compareTo(node.key)
             if (cmp == 0) {
-                // The key is already in this tree.
-                return node.value
+                // The key is already in this tree. Override and return old value
+                val oldValue = node.value
+                node.value = value
+                return oldValue
             }
             parent = node
             node = if (cmp < 0) node.left else node.right
@@ -108,15 +115,6 @@ class TreeMap<K : Comparable<K>, V> : SortedMap<K, V> {
             }
         }
     }
-
-    override val keys: MutableSet<K>
-        get() = TODO("Not yet implemented")
-
-    override val values: MutableCollection<V>
-        get() = TODO("Not yet implemented")
-
-    override val entries: MutableSet<MutableMap.MutableEntry<K, V>>
-        get() = TODO("Not yet implemented")
 
     override fun indexOf(key: K): Int {
         var node: Node<K, V>? = root
@@ -231,21 +229,14 @@ class TreeMap<K : Comparable<K>, V> : SortedMap<K, V> {
                 private var expectedModCount: Int = modCount    // detect concurrent modifications
 
                 override fun hasNext(): Boolean {
-                    return nextNode != null
+                    return nextNode != null && ((inclusive.second && nextNode!!.key <= stop) || (!inclusive.second && nextNode!!.key < stop))
                 }
 
                 override fun next(): Map.Entry<K, V> {
-                    if (nextNode == null) throw NoSuchElementException("Iteration exceeded.")
+                    val currentNode = nextNode ?: throw NoSuchElementException("Iteration exceeded.")
                     if (expectedModCount != modCount) throw ConcurrentModificationException("The set was modified while iterating.")
-                    val datum: K = nextNode!!.key
-                    if (inclusive.second) {
-                        if (datum > stop) throw NoSuchElementException("Iteration exceeded.")
-                    }
-                    else {
-                        if (datum >= stop) throw NoSuchElementException("Iteration exceeded.")
-                    }
-                    nextNode = successor(nextNode!!)
-                    return nextNode!!
+                    nextNode = successor(currentNode)
+                    return currentNode
                 }
             }
         }
@@ -270,64 +261,323 @@ class TreeMap<K : Comparable<K>, V> : SortedMap<K, V> {
                 private var expectedModCount: Int = modCount // detect concurrent modifications
 
                 override fun hasNext(): Boolean {
-                    return nextNode != null
+                    return nextNode != null && ((inclusive.first && nextNode!!.key >= stop) || (!inclusive.first && nextNode!!.key > stop))
                 }
 
                 override fun next(): Map.Entry<K, V> {
-                    if (nextNode == null) throw NoSuchElementException("Iteration exceeded.")
+                    val currentNode = nextNode ?: throw NoSuchElementException("Iteration exceeded.")
                     if (expectedModCount != modCount) throw ConcurrentModificationException("The set was modified while iterating.")
-                    val datum: K = nextNode!!.key
-                    if (inclusive.first) {
-                        if (datum < stop) throw NoSuchElementException("Iteration exceeded.")
-                    } else {
-                        if (datum <= stop) throw NoSuchElementException("Iteration exceeded.")
-                    }
-                    nextNode = predecessor(nextNode!!) // Use predecessor for reverse traversal
-                    return nextNode!!
+                    nextNode = predecessor(currentNode)
+                    return currentNode
                 }
             }
         }
     }
 
-    private inner class TreeIterator : MutableIterator<K> {
-        private var previousNode: Node<K, V>? = null
-        private var nextNode: Node<K, V>? = null
-        private var expectedModCount: Int = modCount    // detect concurrent modifications
+    // ==================== Map views ==================== //
 
-        init {
-            nextNode = root?.let { minimumNode(it) }
-        }
+    override val keys: MutableSet<K> by lazy {
+        object : MutableSet<K> {
+            override val size: Int
+                get() = this@TreeMap._size
 
-        override fun hasNext(): Boolean {
-            return nextNode != null
-        }
-
-        override fun next(): K {
-            if (nextNode == null) {
-                throw NoSuchElementException("Iteration exceeded.")
+            override fun clear() {
+                this@TreeMap.clear()
             }
-            if (expectedModCount != modCount) throw ConcurrentModificationException("The set was modified while iterating.")
-            val datum: K = nextNode!!.key
-            previousNode = nextNode
-            nextNode = successor(nextNode!!)
-            return datum
-        }
 
-        override fun remove() {
-            checkNotNull(previousNode) { if (nextNode == null) "Not a single call to next(); nothing to remove." else "Removing the same key twice." }
-            if (expectedModCount != modCount) throw ConcurrentModificationException("The set was modified while iterating.")
-            val x: Node<K, V> = deleteNode(previousNode!!)
-            fixAfterModification(x, false)
-            if (x == nextNode) {
-                nextNode = previousNode
+            override fun isEmpty(): Boolean {
+                return this@TreeMap.isEmpty()
             }
-            expectedModCount = ++modCount
-            _size--
-            previousNode = null
+
+            override fun iterator(): MutableIterator<K> {
+                return object : MutableIterator<K> {
+                    private var previousNode: Node<K, V>? = null
+                    private var nextNode: Node<K, V>? = null
+                    private var expectedModCount: Int = modCount    // detect concurrent modifications
+
+                    init {
+                        nextNode = root?.let { minimumNode(it) }
+                    }
+
+                    override fun hasNext(): Boolean {
+                        return nextNode != null
+                    }
+
+                    override fun next(): K {
+                        if (nextNode == null) {
+                            throw NoSuchElementException("Iteration exceeded.")
+                        }
+                        if (expectedModCount != modCount) throw ConcurrentModificationException("The set was modified while iterating.")
+                        val datum: K = nextNode!!.key
+                        previousNode = nextNode
+                        nextNode = successor(nextNode!!)
+                        return datum
+                    }
+
+                    override fun remove() {
+                        checkNotNull(previousNode) { if (nextNode == null) "Not a single call to next(); nothing to remove." else "Removing the same key twice." }
+                        if (expectedModCount != modCount) throw ConcurrentModificationException("The set was modified while iterating.")
+                        val x: Node<K, V> = deleteNode(previousNode!!)
+                        fixAfterModification(x, false)
+                        if (x == nextNode) {
+                            nextNode = previousNode
+                        }
+                        expectedModCount = ++modCount
+                        _size--
+                        previousNode = null
+                    }
+                }
+            }
+
+            override fun retainAll(elements: Collection<K>): Boolean {
+                // Create a HashSet from the elements if it is not already a HashSet
+                val elementSet = if (elements is HashSet<*>) elements as HashSet<K> else HashSet(elements)
+                // Use the iterator from the inner class
+                val iterator = iterator()
+                var modified = false
+                // Iterate over the elements using the iterator
+                while (iterator.hasNext()) {
+                    val element = iterator.next()
+                    if (!elementSet.contains(element)) {
+                        iterator.remove()
+                        modified = true
+                    }
+                }
+                return modified
+            }
+
+            override fun removeAll(elements: Collection<K>): Boolean {
+                var modified = false
+                for (element in elements) {
+                    if (this@TreeMap.remove(element) == null) {
+                        modified = true
+                    }
+                }
+                return modified
+            }
+
+            override fun remove(element: K): Boolean {
+                return this@TreeMap.remove(element) == null
+            }
+
+            override fun containsAll(elements: Collection<K>): Boolean {
+                for (element in elements) {
+                    if (!this@TreeMap.contains(element)) {
+                        return false
+                    }
+                }
+                return true
+            }
+
+            override fun contains(element: K): Boolean {
+                return this@TreeMap.contains(element)
+            }
+
+            override fun add(element: K): Boolean {
+                throw UnsupportedOperationException()
+            }
+
+            override fun addAll(elements: Collection<K>): Boolean {
+                throw UnsupportedOperationException()
+            }
         }
     }
 
-    // ==================== internal functions ==================== //
+    override val values: MutableCollection<V> by lazy {
+        object : MutableCollection<V> {
+            override val size: Int
+                get() = this@TreeMap._size
+
+            override fun clear() {
+                this@TreeMap.clear()
+            }
+
+            override fun isEmpty(): Boolean {
+                return this@TreeMap.isEmpty()
+            }
+
+            override fun iterator(): MutableIterator<V> {
+                return object : MutableIterator<V> {
+                    private var previousNode: Node<K, V>? = null
+                    private var nextNode: Node<K, V>? = null
+                    private var expectedModCount: Int = modCount    // detect concurrent modifications
+
+                    init {
+                        nextNode = root?.let { minimumNode(it) }
+                    }
+
+                    override fun hasNext(): Boolean {
+                        return nextNode != null
+                    }
+
+                    override fun next(): V {
+                        if (nextNode == null) {
+                            throw NoSuchElementException("Iteration exceeded.")
+                        }
+                        if (expectedModCount != modCount) throw ConcurrentModificationException("The set was modified while iterating.")
+                        val datum: V = nextNode!!.value
+                        previousNode = nextNode
+                        nextNode = successor(nextNode!!)
+                        return datum
+                    }
+
+                    override fun remove() {
+                        throw UnsupportedOperationException()
+                    }
+                }
+            }
+
+            override fun retainAll(elements: Collection<V>): Boolean {
+                // Create a HashSet from the elements if it is not already a HashSet
+                val elementSet = if (elements is HashSet<*>) elements as HashSet<V> else HashSet(elements)
+                // Use the iterator from the inner class
+                val iterator = iterator()
+                var modified = false
+                // Iterate over the elements using the iterator
+                while (iterator.hasNext()) {
+                    val element = iterator.next()
+                    if (!elementSet.contains(element)) {
+                        iterator.remove()   //TODO(will crash)
+                        modified = true
+                    }
+                }
+                return modified
+            }
+
+            override fun removeAll(elements: Collection<V>): Boolean {
+                var modified = false
+                for (element in elements) {
+                    if (remove(element)) {
+                        modified = true
+                    }
+                }
+                return modified
+            }
+
+            override fun remove(element: V): Boolean {
+                var e: Node<K, V>? = minimumNode(root!!)
+                while (e != null) {
+                    if (valEquals(e.value, element)) {
+                        this@TreeMap.remove(e.key)
+                        return true
+                    }
+                    e = successor(e)
+                }
+                return false
+            }
+
+            override fun containsAll(elements: Collection<V>): Boolean {
+                for (element in elements) {
+                    if (!this@TreeMap.containsValue(element)) {
+                        return false
+                    }
+                }
+                return true
+            }
+
+            override fun contains(element: V): Boolean {
+                return this@TreeMap.containsValue(element)
+            }
+
+            override fun addAll(elements: Collection<V>): Boolean {
+                throw UnsupportedOperationException()
+            }
+
+            override fun add(element: V): Boolean {
+                throw UnsupportedOperationException()
+            }
+
+            private fun valEquals(o1: V?, o2: V?): Boolean {
+                return (if (o1 == null) o2 == null else (o1 == o2))
+            }
+        }
+    }
+
+    override val entries: MutableSet<MutableMap.MutableEntry<K, V>> by lazy {
+        object : MutableSet<MutableMap.MutableEntry<K, V>> {
+            override fun add(element: MutableMap.MutableEntry<K, V>): Boolean {
+                TODO("Not yet implemented")
+            }
+
+            override val size: Int
+                get() = this@TreeMap._size
+
+            override fun clear() {
+                this@TreeMap.clear()
+            }
+
+            override fun isEmpty(): Boolean {
+                return this@TreeMap.isEmpty()
+            }
+
+            override fun iterator(): MutableIterator<MutableMap.MutableEntry<K, V>> {
+                return object : MutableIterator<MutableMap.MutableEntry<K, V>> {
+                    private var previousNode: Node<K, V>? = null
+                    private var nextNode: Node<K, V>? = null
+                    private var expectedModCount: Int = modCount    // detect concurrent modifications
+
+                    init {
+                        nextNode = root?.let { minimumNode(it) }
+                    }
+
+                    override fun hasNext(): Boolean {
+                        return nextNode != null
+                    }
+
+                    override fun next(): MutableMap.MutableEntry<K, V> {
+                        if (nextNode == null) {
+                            throw NoSuchElementException("Iteration exceeded.")
+                        }
+                        if (expectedModCount != modCount) throw ConcurrentModificationException("The set was modified while iterating.")
+                        val datum: MutableMap.MutableEntry<K, V> = nextNode!!
+                        previousNode = nextNode
+                        nextNode = successor(nextNode!!)
+                        return datum
+                    }
+
+                    override fun remove() {
+                        checkNotNull(previousNode) { if (nextNode == null) "Not a single call to next(); nothing to remove." else "Removing the same key twice." }
+                        if (expectedModCount != modCount) throw ConcurrentModificationException("The set was modified while iterating.")
+                        val x: Node<K, V> = deleteNode(previousNode!!)
+                        fixAfterModification(x, false)
+                        if (x == nextNode) {
+                            nextNode = previousNode
+                        }
+                        expectedModCount = ++modCount
+                        _size--
+                        previousNode = null
+                    }
+                }
+            }
+
+            override fun retainAll(elements: Collection<MutableMap.MutableEntry<K, V>>): Boolean {
+                TODO("Not yet implemented")
+            }
+
+            override fun removeAll(elements: Collection<MutableMap.MutableEntry<K, V>>): Boolean {
+                TODO("Not yet implemented")
+            }
+
+            override fun remove(element: MutableMap.MutableEntry<K, V>): Boolean {
+                TODO("Not yet implemented")
+            }
+
+            override fun containsAll(elements: Collection<MutableMap.MutableEntry<K, V>>): Boolean {
+                TODO("Not yet implemented")
+            }
+
+            override fun contains(element: MutableMap.MutableEntry<K, V>): Boolean {
+                TODO("Not yet implemented")
+            }
+
+            override fun addAll(elements: Collection<MutableMap.MutableEntry<K, V>>): Boolean {
+                TODO("Not yet implemented")
+            }
+
+        }
+    }
+
+    // ==================== Internal functions ==================== //
 
     private fun getNode(key: K): Node<K, V>? {
         var x = root

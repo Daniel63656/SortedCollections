@@ -1,6 +1,7 @@
 package net.scoreworks.collection
 
-interface SortedMap<K: Comparable<K>, V> : MutableMap<K, V> {
+
+interface SortedMap<K: Comparable<K>, V> : Map<K, V> {
 
     /**
      * Retrieves the value at the specified index in the sorted map.
