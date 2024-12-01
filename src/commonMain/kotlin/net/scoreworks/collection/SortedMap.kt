@@ -110,12 +110,7 @@ interface SortedMap<K: Comparable<K>, V> : Map<K, V> {
      * Creates an iterator of values between `start` and `end`.
      *
      * Both `start` and `end` default to `null`, which includes all entries
-     * from the beginning to the end of the map.
-     *
-     * The `inclusive` parameter is a pair of booleans indicating whether the
-     * `start` and `end` values should be included in the range,
-     * respectively. The default is `(true, true)`, making the range inclusive
-     * of both `start` and `end`.
+     * from the beginning to the end of the map. By default, both start and end are inclusive.
      *
      * When `reverse` is `true`, the values are yielded from the iterator in
      * reverse order; `reverse` defaults to `false`.
@@ -123,7 +118,10 @@ interface SortedMap<K: Comparable<K>, V> : Map<K, V> {
     fun rangedQuery(
         start: K? = null,
         end: K? = null,
-        inclusive: Pair<Boolean, Boolean> = Pair(true, true),
+        startInclusive: Boolean = true,
+        endInclusive: Boolean = true,
         reverse: Boolean = false
     ): Iterator<Map.Entry<K, V>>
 }
+
+interface MutableSortedMap<K : Comparable<K>, V> : SortedMap<K, V>, MutableMap<K, V>

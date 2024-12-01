@@ -64,10 +64,22 @@ interface SortedSet<E: Comparable<E>> : Set<E> {
      */
     fun last(): E?
 
+    /**
+     * Creates an iterator of values between `start` and `end`.
+     *
+     * Both `start` and `end` default to `null`, which includes all entries
+     * from the beginning to the end of the set. By default, both start and end are inclusive.
+     *
+     * When `reverse` is `true`, the values are yielded from the iterator in
+     * reverse order; `reverse` defaults to `false`.
+     */
     fun rangedQuery(
         start: E? = null,
         end: E? = null,
-        inclusive: Pair<Boolean, Boolean> = Pair(true, true),
+        startInclusive: Boolean = true,
+        endInclusive: Boolean = true,
         reverse: Boolean = false
     ): Iterator<E>
 }
+
+interface MutableSortedSet<E : Comparable<E>> : SortedSet<E>, MutableSet<E>

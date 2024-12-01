@@ -1,5 +1,7 @@
 package net.scoreworks.collection
 
+import net.scoreworks.collection.MutableSortedMap
+
 
 open class TreeMap<K : Comparable<K>, V> : MutableSortedMap<K, V> {
     private var root: Node<K, V>? = null
@@ -204,7 +206,7 @@ open class TreeMap<K : Comparable<K>, V> : MutableSortedMap<K, V> {
         return root?.let { maximumNode(it) }
     }
 
-    override fun rangedQuery(start: K?, end: K?, inclusive: Pair<Boolean, Boolean>, reverse: Boolean): Iterator<Map.Entry<K, V>> {
+    override fun rangedQuery(start: K?, end: K?, startInclusive: Boolean, endInclusive: Boolean, reverse: Boolean): Iterator<Map.Entry<K, V>> {
         if (root == null) {
             // Is empty; return an empty iterator
             return emptyMap<K, V>().iterator()
@@ -212,7 +214,7 @@ open class TreeMap<K : Comparable<K>, V> : MutableSortedMap<K, V> {
         if (!reverse) {
             // Determine the start node for iteration
             val startNode: Node<K, V>? = if (start != null) {
-                if (inclusive.first) {
+                if (startInclusive) {
                     val node = getNode(start)
                     node ?: higherNode(start)
                 } else {
@@ -229,7 +231,7 @@ open class TreeMap<K : Comparable<K>, V> : MutableSortedMap<K, V> {
                 private var expectedModCount: Int = modCount    // detect concurrent modifications
 
                 override fun hasNext(): Boolean {
-                    return nextNode != null && ((inclusive.second && nextNode!!.key <= stop) || (!inclusive.second && nextNode!!.key < stop))
+                    return nextNode != null && ((endInclusive && nextNode!!.key <= stop) || (!endInclusive && nextNode!!.key < stop))
                 }
 
                 override fun next(): Map.Entry<K, V> {
@@ -243,7 +245,7 @@ open class TreeMap<K : Comparable<K>, V> : MutableSortedMap<K, V> {
         else {
             // Determine the start node for reverse iteration
             val startNode: Node<K, V>? = if (end != null) {
-                if (inclusive.second) {
+                if (endInclusive) {
                     val node = getNode(end)
                     node ?: lowerNode(end)
                 } else {
@@ -261,7 +263,7 @@ open class TreeMap<K : Comparable<K>, V> : MutableSortedMap<K, V> {
                 private var expectedModCount: Int = modCount // detect concurrent modifications
 
                 override fun hasNext(): Boolean {
-                    return nextNode != null && ((inclusive.first && nextNode!!.key >= stop) || (!inclusive.first && nextNode!!.key > stop))
+                    return nextNode != null && ((startInclusive && nextNode!!.key >= stop) || (!startInclusive && nextNode!!.key > stop))
                 }
 
                 override fun next(): Map.Entry<K, V> {

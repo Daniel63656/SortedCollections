@@ -200,7 +200,7 @@ open class TreeSet<E : Comparable<E>> : MutableSortedSet<E> {
     }
 
 
-    override fun rangedQuery(start: E?, end: E?, inclusive: Pair<Boolean, Boolean>, reverse: Boolean): Iterator<E> {
+    override fun rangedQuery(start: E?, end: E?, startInclusive: Boolean, endInclusive: Boolean, reverse: Boolean): Iterator<E> {
         if (root == null) {
             // Is empty; return an empty iterator
             return emptyList<E>().iterator()
@@ -208,7 +208,7 @@ open class TreeSet<E : Comparable<E>> : MutableSortedSet<E> {
         if (!reverse) {
             // Determine the start node for iteration
             val startNode: Node<E>? = if (start != null) {
-                if (inclusive.first) {
+                if (startInclusive) {
                     val node = getNode(start)
                     node ?: higherNode(start)
                 } else {
@@ -225,7 +225,7 @@ open class TreeSet<E : Comparable<E>> : MutableSortedSet<E> {
                 private var expectedModCount: Int = modCount    // detect concurrent modifications
 
                 override fun hasNext(): Boolean {
-                    return nextNode != null && ((inclusive.second && nextNode!!.key <= stop) || (!inclusive.second && nextNode!!.key < stop))
+                    return nextNode != null && ((endInclusive && nextNode!!.key <= stop) || (!endInclusive && nextNode!!.key < stop))
                 }
 
                 override fun next(): E {
@@ -239,7 +239,7 @@ open class TreeSet<E : Comparable<E>> : MutableSortedSet<E> {
         else {
             // Determine the start node for reverse iteration
             val startNode: Node<E>? = if (end != null) {
-                if (inclusive.second) {
+                if (endInclusive) {
                     val node = getNode(end)
                     node ?: lowerNode(end)
                 } else {
@@ -257,7 +257,7 @@ open class TreeSet<E : Comparable<E>> : MutableSortedSet<E> {
                 private var expectedModCount: Int = modCount // detect concurrent modifications
 
                 override fun hasNext(): Boolean {
-                    return nextNode != null && ((inclusive.first && nextNode!!.key >= stop) || (!inclusive.first && nextNode!!.key > stop))
+                    return nextNode != null && ((startInclusive && nextNode!!.key >= stop) || (!startInclusive && nextNode!!.key > stop))
                 }
 
                 override fun next(): E {
