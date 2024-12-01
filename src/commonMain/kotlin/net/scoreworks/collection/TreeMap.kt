@@ -1,7 +1,5 @@
 package net.scoreworks.collection
 
-import net.scoreworks.collection.MutableSortedMap
-
 
 open class TreeMap<K : Comparable<K>, V> : MutableSortedMap<K, V> {
     private var root: Node<K, V>? = null
@@ -424,7 +422,16 @@ open class TreeMap<K : Comparable<K>, V> : MutableSortedMap<K, V> {
                     }
 
                     override fun remove() {
-                        throw UnsupportedOperationException()
+                        checkNotNull(previousNode) { if (nextNode == null) "Not a single call to next(); nothing to remove." else "Removing the same key twice." }
+                        if (expectedModCount != modCount) throw ConcurrentModificationException("The set was modified while iterating.")
+                        val x: Node<K, V> = deleteNode(previousNode!!)
+                        fixAfterModification(x, false)
+                        if (x == nextNode) {
+                            nextNode = previousNode
+                        }
+                        expectedModCount = ++modCount
+                        _size--
+                        previousNode = null
                     }
                 }
             }
@@ -439,7 +446,7 @@ open class TreeMap<K : Comparable<K>, V> : MutableSortedMap<K, V> {
                 while (iterator.hasNext()) {
                     val element = iterator.next()
                     if (!elementSet.contains(element)) {
-                        iterator.remove()   //TODO(will crash)
+                        iterator.remove()
                         modified = true
                     }
                 }
@@ -497,10 +504,6 @@ open class TreeMap<K : Comparable<K>, V> : MutableSortedMap<K, V> {
 
     override val entries: MutableSet<MutableMap.MutableEntry<K, V>> by lazy {
         object : MutableSet<MutableMap.MutableEntry<K, V>> {
-            override fun add(element: MutableMap.MutableEntry<K, V>): Boolean {
-                TODO("Not yet implemented")
-            }
-
             override val size: Int
                 get() = this@TreeMap._size
 
@@ -553,29 +556,62 @@ open class TreeMap<K : Comparable<K>, V> : MutableSortedMap<K, V> {
             }
 
             override fun retainAll(elements: Collection<MutableMap.MutableEntry<K, V>>): Boolean {
-                TODO("Not yet implemented")
-            }
-
-            override fun removeAll(elements: Collection<MutableMap.MutableEntry<K, V>>): Boolean {
-                TODO("Not yet implemented")
+                // Create a HashSet from the elements if it is not already a HashSet
+                val elementSet = if (elements is HashSet<*>) elements as HashSet<MutableMap.MutableEntry<K, V>> else HashSet(elements)
+                // Use the iterator from the inner class
+                val iterator = iterator()
+                var modified = false
+                // Iterate over the elements using the iterator
+                while (iterator.hasNext()) {
+                    val element = iterator.next()
+                    if (!elementSet.contains(element)) {
+                        iterator.remove()
+                        modified = true
+                    }
+                }
+                return modified
             }
 
             override fun remove(element: MutableMap.MutableEntry<K, V>): Boolean {
-                TODO("Not yet implemented")
+                return this@TreeMap.remove(element.key) != null
             }
 
-            override fun containsAll(elements: Collection<MutableMap.MutableEntry<K, V>>): Boolean {
-                TODO("Not yet implemented")
+            override fun removeAll(elements: Collection<MutableMap.MutableEntry<K, V>>): Boolean {
+                var modified = false
+                for (element in elements) {
+                    if (this@TreeMap.remove(element.key) == null) {
+                        modified = true
+                    }
+                }
+                return modified
             }
 
             override fun contains(element: MutableMap.MutableEntry<K, V>): Boolean {
-                TODO("Not yet implemented")
+                return this@TreeMap.contains(element.key)
+            }
+
+            override fun containsAll(elements: Collection<MutableMap.MutableEntry<K, V>>): Boolean {
+                for (element in elements) {
+                    if (!this@TreeMap.contains(element.key)) {
+                        return false
+                    }
+                }
+                return true
+            }
+
+            override fun add(element: MutableMap.MutableEntry<K, V>): Boolean {
+                return this@TreeMap.put(element.key, element.value) == null
             }
 
             override fun addAll(elements: Collection<MutableMap.MutableEntry<K, V>>): Boolean {
-                TODO("Not yet implemented")
+                var modified = false
+                for (element in elements) {
+                    if (this@TreeMap.put(element.key, element.value) == null) {
+                        modified = true
+                    }
+                }
+                return modified
             }
-
         }
     }
 
