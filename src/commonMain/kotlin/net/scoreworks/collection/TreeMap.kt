@@ -174,8 +174,8 @@ open class TreeMap<K : Comparable<K>, V> : MutableSortedMap<K, V> {
     }
 
     override fun ceilingEntry(key: K): Map.Entry<K, V>? {
-        getNode(key) ?: return null
-        return higherNode(key)
+        val node = getNode(key)
+        return node ?: higherEntry(key)
     }
 
     override fun floorKey(key: K): K? {
@@ -184,8 +184,8 @@ open class TreeMap<K : Comparable<K>, V> : MutableSortedMap<K, V> {
     }
 
     override fun floorEntry(key: K): Map.Entry<K, V>? {
-        getNode(key) ?: return null
-        return lowerNode(key)
+        val node = getNode(key)
+        return node ?: lowerNode(key)
     }
 
     override fun firstKey(): K? {
@@ -678,7 +678,7 @@ open class TreeMap<K : Comparable<K>, V> : MutableSortedMap<K, V> {
         var node = root
         var candidate: Node<K, V>? = null
         while (node != null) {
-            if (key < node.key) {
+            if (key <= node.key) {
                 node = node.left
             } else {
                 candidate = node // Current node is a candidate

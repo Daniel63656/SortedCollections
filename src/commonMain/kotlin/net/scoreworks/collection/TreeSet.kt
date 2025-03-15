@@ -368,7 +368,7 @@ open class TreeSet<E : Comparable<E>> : MutableSortedSet<E> {
         var node = root
         var candidate: Node<E>? = null
         while (node != null) {
-            if (element < node.key) {
+            if (element <= node.key) {
                 node = node.left
             } else {
                 candidate = node // Current node is a candidate
